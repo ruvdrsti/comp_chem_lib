@@ -222,10 +222,3 @@ class molecule:
                     inertia_tensor[i, i] += np.sum(atomic_weigth*work_with.T**2)
 
         return inertia_tensor
-
-
-water = molecule("../bootcamp/projects/harmonic-vibrational-analysis/input/water.txt")
-print(water.allBondAngles())
-print(water.centerOfMassDeterminator())
-print(water.tensorCalculator())
-print(water.allTorsionAnlges())
