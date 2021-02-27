@@ -13,7 +13,7 @@ def angleCalculator(atoms , molecule):
     note:
     the distanceMatrix is a global variable. It needs to be set before the function can be used
     """
-    if self.distanceMatrix[atoms[0]][atoms[1]] >= 4 or self.distanceMatrix[atoms[1]][atoms[2]] >= 4:
+    if distanceMatrix[atoms[0]][atoms[1]] >= 4 or distanceMatrix[atoms[1]][atoms[2]] >= 4:
         return "too far"
     dot_product = np.dot(UnitVectorCalculator(atoms[1], atoms[0], molecule), UnitVectorCalculator(atoms[1], atoms[2], molecule))
     return np.arccos(dot_product)
@@ -32,7 +32,7 @@ def UnitVectorCalculator(atom1, atom2, molecule):
     """
     vector1 = molecule[1][atom1]
     vector2 = molecule[1][atom2]
-    lenght = self.distanceMatrix[atom1, atom2]
+    lenght = distanceMatrix[atom1, atom2]
     return (vector2 - vector1)/lenght
 
 
