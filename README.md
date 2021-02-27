@@ -3,5 +3,6 @@ library that holds all functions written over the course of the bachelors projec
 
 To install clone this repo and then simply type 
 ```
+pip install wheel  # needed to get the package from the wheelfile
 pip install /path/to/clone_folder/dist/compChem-0.1.0-py3-none-any.whl
 ```
