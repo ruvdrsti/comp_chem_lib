@@ -16,6 +16,4 @@ class molecule:
         dislpays all bond angles, further docs in the calculations.py file
         """
         return compChem.calculations.allBondAngles()
-    
-    
 water = molecule("../bootcamp/projects/harmonic-vibrational-analysis/input/water.txt")
