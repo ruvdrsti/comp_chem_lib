@@ -1,6 +1,7 @@
 # setting up psi4 options
 import psi4
 import numpy as np
+import scipy.linalg as sp
 psi4.set_output_file("output.dat", True)  # setting output file
 psi4.set_memory(int(5e8))
 numpy_memory = 2
@@ -103,22 +104,16 @@ class molecule:
         """
         calculates the eigenvectors and eigenvalues of the hamiltonian
         """
-        H_t = self.transformToUnity().dot(self.guessMatrix).dot(self.transformToUnity())
-        return np.linalg.eigh(H_t) 
+        return sp.eigh(self.guessMatrix, b=self.displayOverlap())
 
 
     def getDensityMatrix(self):
         """
         generates the densitiy matrix on the MO level
         """
-        occ_list = [2 for i in range(self.occupied)]
-        unocc_list = [0 for i in range(len(self.displayOverlap()) - self.occupied)]
-        occ_list += unocc_list
-        densityMO = np.diag(occ_list)
-        Cprime = self.getEigenStuff()[1]
-        C = np.einsum("pq,qr->pr", self.transformToUnity(), Cprime, optimize=True)
-        return np.einsum("pq, qr, rs->ps", C, densityMO, C.T, optimize=True)
-
+        C = self.getEigenStuff()[1]
+        A = 2*np.einsum("pq, qr->pr", C[:, :self.occupied], C[:, :self.occupied].T, optimize=True)
+        return A
 
 
     def displayFockMatrix(self):
@@ -172,7 +167,7 @@ def iterator(target_molecule):
 
         # comparing block: will answer the "Are we there yet?" question
         rms_D = np.einsum("pq->", np.sqrt((d_old - d_new)**2), optimize=True)
-        if abs(E_old - E_new) < 1e-4 and rms_D < 1e-6:
+        if abs(E_old - E_new) < 1e-6 and rms_D < 1e-4:
             convergence = True
 
 
