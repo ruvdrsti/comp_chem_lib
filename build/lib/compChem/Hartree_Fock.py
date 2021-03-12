@@ -212,7 +212,7 @@ class Molecule:
         E_new = 0  
         E_old = 0
         d_old_alpha = self.getDensityMatrix("alpha")
-        d_old_beta = self_molecule.getDensityMatrix("beta")
+        d_old_beta = self.molecule.getDensityMatrix("beta")
         convergence = False
 
         # step 2: start iterating
