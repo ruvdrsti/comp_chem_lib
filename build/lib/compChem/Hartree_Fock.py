@@ -40,6 +40,10 @@ class Molecule:
         self.pot = self.integrals.ao_potential().np
         self.elrep = self.integrals.ao_eri().np
 
+        # defining convergence via user interactions
+        self.converge = 1e-6
+        
+
     
     def setGuess(self, new_guess=None, spin=None):
         """
@@ -192,51 +196,64 @@ class Molecule:
 
 
 
-def iterator(target_molecule):
-    """
-    Function that performs the Hartree-Fock iterative calculations for the given molecule.
+    def iterator(self, criterion='density'):
+        """
+        Function that performs the Hartree-Fock iterative calculations for the given molecule.
+        
+        input:
+        criterion: "energy" or "density", sets the criterion that we want to evaluate. Default "density"
+        
+        note:
+        the target_molecule needs to have its guessmatrices set before entering
+        """
+        assert self.guessMatrix_a != "empty" and self.guessMatrix_b != "empty", "make a guess first"
+        assert citerion == "energy" or criterion == "density", f" {criterion}: not a valid criterion"
+        # setting up entry parameters for the while loop
+        E_new = 0  
+        E_old = 0
+        d_old_alpha = target_molecule.getDensityMatrix("alpha")
+        d_old_beta = target_molecule.getDensityMatrix("beta")
+        convergence = False
+
+        # step 2: start iterating
+        itercount = 0
+        while not convergence and itercount < 500:
+
+            # calculating block: calculates energies
+            E_new = target_molecule.getElectronicEnergy()
+            E_total = target_molecule.getTotalEnergy()
+
+            # generating block: generates new matrices UHF: account for alpha and beta
+            F_a =  target_molecule.displayFockMatrix("alpha")
+            target_molecule.setGuess(F_a, "alpha")
+            F_b = target_molecule.displayFockMatrix("beta")
+            target_molecule.setGuess(F_b, "beta") 
+            d_new_alpha = target_molecule.getDensityMatrix("alpha")
+            d_new_beta = target_molecule.getDensityMatrix("beta")
+
+            # comparing block: will answer the "Are we there yet?" question
+            rms_D_a = np.einsum("pq->", np.sqrt((d_old_alpha - d_new_alpha)**2), optimize=True)
+            rms_D_b = np.einsum("pq->", np.sqrt((d_old_beta - d_new_beta)**2), optimize=True)
+            if criterion == "density":
+                if rms_D_a < self.converge and rms_D_b < self.converge:
+                    convergence = True
+            else:
+                if abs(E_old - E_new) < self.converge:
+                    convergence = True
+
+
+            # maintenance block: keeps everything going
+            print(f"iteration: {itercount}, E_tot: {E_total: .8f}, E_elek: {E_new: .8f}, deltaE: {E_new - E_old: .8f}, rmsD: {rms_D_a: .8f}")
+            E_old = E_new
+            d_old_alpha = d_new_alpha
+            d_old_beta = d_new_beta
+            itercount += 1
+        
+        return E_total
+
     
-    input:
-    target_molecule: a molecule object from the class molecule
+    def setConvergence(self, new_convergence):
+        """ sets the convergence to desired value"""
+        self.converge = new_convergence
     
-    note:
-    the target_molecule needs to have its guessmatrices set before entering
-    """
-    assert target_molecule.guessMatrix_a != "empty" and target_molecule.guessMatrix_b != "empty", "make a guess first"
-    # setting up entry parameters for the while loop
-    E_new = 0  
-    E_old = 0
-    d_old_alpha = target_molecule.getDensityMatrix("alpha")
-    d_old_beta = target_molecule.getDensityMatrix("beta")
-    convergence = False
-
-    # step 2: start iterating
-    itercount = 0
-    while not convergence and itercount < 500:
-
-        # calculating block: calculates energies
-        E_new = target_molecule.getElectronicEnergy()
-        E_total = target_molecule.getTotalEnergy()
-
-        # generating block: generates new matrices UHF: account for alpha and beta
-        F_a =  target_molecule.displayFockMatrix("alpha")
-        target_molecule.setGuess(F_a, "alpha")
-        F_b = target_molecule.displayFockMatrix("beta")
-        target_molecule.setGuess(F_b, "beta") 
-        d_new_alpha = target_molecule.getDensityMatrix("alpha")
-        d_new_beta = target_molecule.getDensityMatrix("beta")
-
-        # comparing block: will answer the "Are we there yet?" question
-        rms_D_a = np.einsum("pq->", np.sqrt((d_old_alpha - d_new_alpha)**2), optimize=True)
-        rms_D_b = np.einsum("pq->", np.sqrt((d_old_beta - d_new_beta)**2), optimize=True)
-        if rms_D_a < 1e-6 and rms_D_b <1e-6:
-            convergence = True
-
-
-        # maintenance block: keeps everything going
-        print(f"iteration: {itercount}, E_tot: {E_total: .8f}, E_elek: {E_new: .8f}, deltaE: {E_new - E_old: .8f}, rmsD: {rms_D_a: .8f}")
-        E_old = E_new
-        d_old_alpha = d_new_alpha
-        d_old_beta = d_new_beta
-        itercount += 1
-    return E_total
+        
