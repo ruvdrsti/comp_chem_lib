@@ -1,14 +1,11 @@
-# setting up psi4 options
 import psi4
 import numpy as np
 import scipy.linalg as sp
 psi4.set_output_file("output.dat", True)  # setting output file
 psi4.set_memory(int(5e8))
 numpy_memory = 2
-psi4.set_options({'basis': 'STO-3G'})
-
-
-class molecule:
+psi4.set_options({'basis': 'cc-pvdz', 'reference': 'uhf', 'scf_type': 'df'})
+class Molecule:
     def __init__(self, geom_file):
         """
         sets up the molecule object
@@ -17,61 +14,78 @@ class molecule:
         geom_file: a link to a pubchem file    
             
         note:
-        This class is designed to work in an iterative Restricted Closed Shell HF calculation. The guess matrix needs to be
-        updated asap. This will always correspond to the curren fock-matrix.
+        This class is designed to work in an iterative HF calculation. The guess matrix needs to be
+        updated asap. This will always correspond to the current fock-matrix.
         """
         if """pubchem""" in geom_file:
             self.id = psi4.geometry(geom_file)
         else:
             self.id = psi4.geometry(f"""
-            {geom_file}
-        
-            units bohr
-            """)
+            {geom_file}""")
         self.id.update_geometry()
         self.wfn =  psi4.core.Wavefunction.build(self.id, psi4.core.get_global_option('basis'))
         self.basis = self.wfn.basisset()
         self.integrals = psi4.core.MintsHelper(self.basis)
-        self.occupied = self.wfn.nalpha()  # only works for closed shell systems
-        self.guessMatrix = "empty"
+        self.alpha = self.wfn.nalpha()
+        self.beta = self.wfn.nbeta()
+        # only works for closed shell systems
+        self.guessMatrix_a = "empty"
+        self.guessMatrix_b = "empty"
+        
+        
+        #setting up the inegrals
+        self.nuc_rep = self.id.nuclear_repulsion_energy()
+        self.overlap = self.integrals.ao_overlap().np
+        self.kin = self.integrals.ao_kinetic().np
+        self.pot = self.integrals.ao_potential().np
+        self.elrep = self.integrals.ao_eri().np
+
     
-    
-    def setGuess(self, new_guess):
+    def setGuess(self, new_guess=None, spin=None):
         """
         sets the guessMatrix to a new value
         
         input:
         new_guess: numpy array that represents a new fock matrix
+        spin: a string, either "alpha" or "beta"
         """
-        self.guessMatrix = new_guess
+        if self.guessMatrix_a == "empty" and self.guessMatrix_b == "empty":
+            self.guessMatrix_a = self.displayHamiltonian()
+            self.guessMatrix_b = self.displayHamiltonian()
+        else:
+            assert spin == "alpha" or spin == "beta", f"{spin}: no valid spin"
+            if spin == "alpha":
+                self.guessMatrix_a = new_guess
+            else:
+                self.guessMatrix_b = new_guess
 
 
     def displayNucRep(self):
         """
         Will calculate the nuclear repulsion
         """
-        return self.id.nuclear_repulsion_energy()
+
+        return self.nuc_rep
 
 
     def displayOverlap(self):
         """
         Will display the overlap matrix as np array
         """
-        return self.integrals.ao_overlap().np
-
+        return self.overlap
 
     def displayE_kin(self):
         """
         Will display kinetic energy as np array
         """
-        return self.integrals.ao_kinetic().np
+        return self.kin
 
 
     def displayE_pot(self):
         """
         Will display the kinetic energy as np array
         """
-        return self.integrals.ao_potential().np
+        return self.pot
 
 
     def displayHamiltonian(self):
@@ -85,7 +99,7 @@ class molecule:
         """
         Will display the interelectronic repulsion as a np array (4D array)
         """
-        return self.integrals.ao_eri().np
+        return self.elrep
 
 
     def transformToUnity(self):
@@ -100,36 +114,74 @@ class molecule:
         return transformMatrix.np
 
 
-    def getEigenStuff(self):
+    def getEigenStuff(self, spin):
         """
         calculates the eigenvectors and eigenvalues of the hamiltonian
+        input:
+        spin: a string, either "alpha" or "beta"
         """
-        return sp.eigh(self.guessMatrix, b=self.displayOverlap())
+        if spin == "alpha":
+            F = self.guessMatrix_a
+        else:
+            F = self.guessMatrix_b        
+        return sp.eigh(F, b=self.displayOverlap())
 
 
-    def getDensityMatrix(self):
+    def getDensityMatrix(self, spin):
         """
-        generates the densitiy matrix on the MO level
+        generates the densitiy matrices on the MO level, D_alpha, D_beta
+        
+        input:
+        spin: a string, either "alpha" or "beta"
         """
-        C = self.getEigenStuff()[1]
-        A = 2*np.einsum("pq, qr->pr", C[:, :self.occupied], C[:, :self.occupied].T, optimize=True)
-        return A
+        assert spin == "alpha" or spin == "beta", f"{spin}: no valid spin"
+        if spin == "alpha":
+            occ = self.alpha
+            guess = self.guessMatrix_a
+        else:
+            occ = self.beta
+            guess = self.guessMatrix_b
+        C = self.getEigenStuff(spin)[1]
+        if np.all(guess == self.displayHamiltonian()) and self.alpha == self.beta:
+            if spin == "beta":
+                k = 1
+                HOMO_LUMO = C[:, occ-1:occ]
+                HOMO = HOMO_LUMO[0]
+                LUMO = HOMO_LUMO[1]
+                HOMO_LUMO[0] += k*LUMO
+                HOMO_LUMO[1] += -k*HOMO
+                HOMO_LUMO *= 1/np.sqrt(2)
+                
+                C[:, occ-1:occ] = HOMO_LUMO
+            
+        
+        D = np.einsum("pq, qr->pr", C[:, :occ], C[:, :occ].T, optimize=True)
+        return D
 
 
-    def displayFockMatrix(self):
-        """Will display the Fock matrix"""
-        summation1 = np.einsum("nopq,pq->no", self.displayElectronRepulsion(), self.getDensityMatrix(), optimize=True)
-        summation2 = np.einsum("npoq,pq->no", self.displayElectronRepulsion(), self.getDensityMatrix(), optimize=True)
-        self.fockMatrix = self.displayHamiltonian() + summation1 - 0.5*summation2
-        return self.fockMatrix
+    def displayFockMatrix(self, spin):
+        """
+        Will display the Fock matrix
+        
+        input:
+        spin: a string, either "alpha" or "beta"
+        """
+        coulomb_a = np.einsum("nopq,pq->no", self.displayElectronRepulsion(), self.getDensityMatrix("alpha"), optimize=True)
+        coulomb_b = np.einsum("nopq,pq->no", self.displayElectronRepulsion(), self.getDensityMatrix("beta"), optimize=True)
+        exchange = np.einsum("npoq,pq->no", self.displayElectronRepulsion(), self.getDensityMatrix(spin), optimize=True)
+        F = self.displayHamiltonian() + coulomb_a + coulomb_b - exchange
+        return F
 
 
     def getElectronicEnergy(self):
         """
         calculates the energy with the current fock matrix
         """
-        sumMatrix = self.displayHamiltonian() + self.displayFockMatrix()
-        return 0.5*np.einsum("pq,pq->", sumMatrix, self.getDensityMatrix())
+        sumMatrix_alpha = self.displayHamiltonian() + self.displayFockMatrix("alpha")
+        E_alpha = 0.5*np.einsum("pq,pq->", sumMatrix_alpha, self.getDensityMatrix("alpha"), optimize=True)
+        sumMatrix_beta = self.displayHamiltonian() + self.displayFockMatrix("beta")
+        E_beta = 0.5*np.einsum("pq,pq->", sumMatrix_beta, self.getDensityMatrix("beta"), optimize=True)
+        return E_alpha + E_beta 
 
 
     def getTotalEnergy(self):
@@ -139,40 +191,52 @@ class molecule:
         return self.getElectronicEnergy() + self.displayNucRep()
 
 
+
 def iterator(target_molecule):
     """
     Function that performs the Hartree-Fock iterative calculations for the given molecule.
     
     input:
     target_molecule: a molecule object from the class molecule
+    
+    note:
+    the target_molecule needs to have its guessmatrices set before entering
     """
+    assert target_molecule.guessMatrix_a != "empty" and target_molecule.guessMatrix_b != "empty", "make a guess first"
     # setting up entry parameters for the while loop
     E_new = 0  
     E_old = 0
-    d_old = target_molecule.getDensityMatrix()
+    d_old_alpha = target_molecule.getDensityMatrix("alpha")
+    d_old_beta = target_molecule.getDensityMatrix("beta")
     convergence = False
 
     # step 2: start iterating
     itercount = 0
-    while not convergence and itercount < 50:
+    while not convergence and itercount < 500:
 
         # calculating block: calculates energies
         E_new = target_molecule.getElectronicEnergy()
         E_total = target_molecule.getTotalEnergy()
 
-        # generating block: generates new matrices
-        F_n =  target_molecule.displayFockMatrix()
-        target_molecule.setGuess(F_n)
-        d_new = target_molecule.getDensityMatrix()
+        # generating block: generates new matrices UHF: account for alpha and beta
+        F_a =  target_molecule.displayFockMatrix("alpha")
+        target_molecule.setGuess(F_a, "alpha")
+        F_b = target_molecule.displayFockMatrix("beta")
+        target_molecule.setGuess(F_b, "beta") 
+        d_new_alpha = target_molecule.getDensityMatrix("alpha")
+        d_new_beta = target_molecule.getDensityMatrix("beta")
 
         # comparing block: will answer the "Are we there yet?" question
-        rms_D = np.einsum("pq->", np.sqrt((d_old - d_new)**2), optimize=True)
-        if abs(E_old - E_new) < 1e-6 and rms_D < 1e-4:
+        rms_D_a = np.einsum("pq->", np.sqrt((d_old_alpha - d_new_alpha)**2), optimize=True)
+        rms_D_b = np.einsum("pq->", np.sqrt((d_old_beta - d_new_beta)**2), optimize=True)
+        if rms_D_a < 1e-6 and rms_D_b <1e-6:
             convergence = True
 
 
         # maintenance block: keeps everything going
-        print(f"iteration: {itercount}, E_tot: {E_total: .8f}, E_elek: {E_new: .8f}, deltaE: {E_new - E_old: .8f}, rmsD: {rms_D: .8f}")
+        print(f"iteration: {itercount}, E_tot: {E_total: .8f}, E_elek: {E_new: .8f}, deltaE: {E_new - E_old: .8f}, rmsD: {rms_D_a: .8f}")
         E_old = E_new
-        d_old = d_new
+        d_old_alpha = d_new_alpha
+        d_old_beta = d_new_beta
         itercount += 1
+    return E_total
