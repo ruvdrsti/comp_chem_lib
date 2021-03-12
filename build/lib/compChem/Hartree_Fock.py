@@ -204,15 +204,15 @@ class Molecule:
         criterion: "energy" or "density", sets the criterion that we want to evaluate. Default "density"
         
         note:
-        the target_molecule needs to have its guessmatrices set before entering
+        the molecule needs to have its guessmatrices set before entering
         """
         assert self.guessMatrix_a != "empty" and self.guessMatrix_b != "empty", "make a guess first"
-        assert citerion == "energy" or criterion == "density", f" {criterion}: not a valid criterion"
+        assert criterion == "energy" or criterion == "density", f" {criterion}: not a valid criterion"
         # setting up entry parameters for the while loop
         E_new = 0  
         E_old = 0
-        d_old_alpha = target_molecule.getDensityMatrix("alpha")
-        d_old_beta = target_molecule.getDensityMatrix("beta")
+        d_old_alpha = self.getDensityMatrix("alpha")
+        d_old_beta = self_molecule.getDensityMatrix("beta")
         convergence = False
 
         # step 2: start iterating
@@ -220,16 +220,16 @@ class Molecule:
         while not convergence and itercount < 500:
 
             # calculating block: calculates energies
-            E_new = target_molecule.getElectronicEnergy()
-            E_total = target_molecule.getTotalEnergy()
+            E_new = self.getElectronicEnergy()
+            E_total = self.getTotalEnergy()
 
             # generating block: generates new matrices UHF: account for alpha and beta
-            F_a =  target_molecule.displayFockMatrix("alpha")
-            target_molecule.setGuess(F_a, "alpha")
-            F_b = target_molecule.displayFockMatrix("beta")
-            target_molecule.setGuess(F_b, "beta") 
-            d_new_alpha = target_molecule.getDensityMatrix("alpha")
-            d_new_beta = target_molecule.getDensityMatrix("beta")
+            F_a =  self.displayFockMatrix("alpha")
+            self.setGuess(F_a, "alpha")
+            F_b = self.displayFockMatrix("beta")
+            self.setGuess(F_b, "beta") 
+            d_new_alpha = self.getDensityMatrix("alpha")
+            d_new_beta = self.getDensityMatrix("beta")
 
             # comparing block: will answer the "Are we there yet?" question
             rms_D_a = np.einsum("pq->", np.sqrt((d_old_alpha - d_new_alpha)**2), optimize=True)
