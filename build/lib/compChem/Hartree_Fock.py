@@ -196,12 +196,13 @@ class Molecule:
 
 
 
-    def iterator(self, criterion='density'):
+    def iterator(self, criterion='density', iteration=500):
         """
         Function that performs the Hartree-Fock iterative calculations for the given molecule.
         
         input:
         criterion: "energy" or "density", sets the criterion that we want to evaluate. Default "density"
+        iteration: maximum amount of iterations allowed. Default 500
         
         note:
         the molecule needs to have its guessmatrices set before entering
@@ -217,7 +218,7 @@ class Molecule:
 
         # step 2: start iterating
         itercount = 0
-        while not convergence and itercount < 500:
+        while not convergence and itercount < iteration:
 
             # calculating block: calculates energies
             E_new = self.getElectronicEnergy()
