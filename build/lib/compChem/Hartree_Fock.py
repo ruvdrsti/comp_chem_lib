@@ -275,7 +275,7 @@ class Molecule:
         # transform p to MO basis, where mo basis = the eigenfunctions of the f_a operator
         a = self.getDensityMatrix("alpha")
         b = self.getDensityMatrix("beta")
-        f_a, f_b = self.id.displayFockMatrix("alpha"), self.displayFockMatrix("beta")
+        f_a, f_b = self.displayFockMatrix("alpha"), self.displayFockMatrix("beta")
         p = (a+b)/2
         c = sp.eigh(f_a, self.overlap)[1] # we only need the c matrix, not the eigenvalues themselves,
         
