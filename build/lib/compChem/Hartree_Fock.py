@@ -233,8 +233,8 @@ class Molecule:
             d_new_beta = self.getDensityMatrix("beta")
 
             # comparing block: will answer the "Are we there yet?" question
-            rms_D_a = np.einsum("pq->", np.sqrt((d_old_alpha - d_new_alpha)**2), optimize=True)
-            rms_D_b = np.einsum("pq->", np.sqrt((d_old_beta - d_new_beta)**2), optimize=True)
+            rms_D_a = np.sqrt(np.einsum("pq->", (d_old_alpha - d_new_alpha)**2, optimize=True))
+            rms_D_b = np.sqrt(np.einsum("pq->", (d_old_beta - d_new_beta)**2, optimize=True))
             if criterion == "density":
                 if rms_D_a < self.converge and rms_D_b < self.converge:
                     convergence = True
