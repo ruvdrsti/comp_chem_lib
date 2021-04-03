@@ -273,11 +273,11 @@ class Molecule:
         changes to NO basis, applies CUHF constraint, then changes back
         """
         # transform p to MO basis, where mo basis = the eigenfunctions of the f_a operator
-        a = self.id.getDensityMatrix("alpha")
-        b = self.id.getDensityMatrix("beta")
-        f_a, f_b = self.id.displayFockMatrix("alpha"), self.id.displayFockMatrix("beta")
+        a = self.getDensityMatrix("alpha")
+        b = self.getDensityMatrix("beta")
+        f_a, f_b = self.id.displayFockMatrix("alpha"), self.displayFockMatrix("beta")
         p = (a+b)/2
-        c = eigh(f_a, self.id.overlap)[1] # we only need the c matrix, not the eigenvalues themselves,
+        c = sp.eigh(f_a, self.overlap)[1] # we only need the c matrix, not the eigenvalues themselves,
         
         delta = (f_b-f_a)/2
         f_cs = (f_a+f_b)/2
@@ -288,14 +288,14 @@ class Molecule:
         
         
          # transform the fock matrices to NO basis
-        d = eigh(p_trans)[1]
+        d = sp.eigh(p_trans)[1]
         d = d[:, ::-1] #invert all collumns
     
         d_inv = np.linalg.inv(d)
         delta_no = np.einsum("pq, qr, rs->ps", d_inv, delta_trans, d_inv.T, optimize=True)
         
-        alpha = self.id.alpha 
-        beta = self.id.beta
+        alpha = self.alpha 
+        beta = self.beta
         #alter first blocks
         
         delta_no[alpha:, :beta] = 0
