@@ -6,12 +6,13 @@ psi4.set_memory(int(5e8))
 numpy_memory = 2
 psi4.set_options({'basis': 'cc-pvdz', 'reference': 'uhf', 'scf_type': 'df'})
 class Molecule:
-    def __init__(self, geom_file):
+    def __init__(self, geom_file, change=False):
         """
         sets up the molecule object
         
         input:
-        geom_file: a link to a pubchem file    
+        geom_file: a link to a pubchem file  
+        change: tuple that contains a custom electron arrangement, of the shape (n_a, n_b)  
             
         note:
         This class is designed to work in an iterative HF calculation. The guess matrix needs to be
@@ -31,6 +32,11 @@ class Molecule:
         # only works for closed shell systems
         self.guessMatrix_a = "empty"
         self.guessMatrix_b = "empty"
+
+        if change:
+            self.alpha = change[0]
+            self.beta = change[1]
+        self.setGuess()
         
         
         #setting up the inegrals
@@ -196,11 +202,12 @@ class Molecule:
 
 
 
-    def iterator(self, criterion='density', iteration=500):
+    def iterator(self, constraint=False, criterion='density', iteration=5000):
         """
         Function that performs the Hartree-Fock iterative calculations for the given molecule.
         
         input:
+        constraint: True for CUHF, false for normal UHF
         criterion: "energy" or "density", sets the criterion that we want to evaluate. Default "density"
         iteration: maximum amount of iterations allowed. Default 500
         
@@ -225,9 +232,12 @@ class Molecule:
             E_total = self.getTotalEnergy()
 
             # generating block: generates new matrices UHF: account for alpha and beta
-            F_a =  self.displayFockMatrix("alpha")
+            if constraint:
+                F_a, F_b = self.basischanger()
+            else:
+                F_a = self.displayFockMatrix("alpha")
+                F_b = self.displayFockMatrix("beta")
             self.setGuess(F_a, "alpha")
-            F_b = self.displayFockMatrix("beta")
             self.setGuess(F_b, "beta") 
             d_new_alpha = self.getDensityMatrix("alpha")
             d_new_beta = self.getDensityMatrix("beta")
@@ -257,4 +267,40 @@ class Molecule:
         """ sets the convergence to desired value"""
         self.converge = new_convergence
     
+    
+    def basischanger(self):
+        """
+        changes to NO basis, applies CUHF constraint, then changes back
+        """
+        # transform p to MO basis, where mo basis = the eigenfunctions of the f_a operator
+        a = self.id.getDensityMatrix("alpha")
+        b = self.id.getDensityMatrix("beta")
+        f_a, f_b = self.id.displayFockMatrix("alpha"), self.id.displayFockMatrix("beta")
+        p = (a+b)/2
+        c = eigh(f_a, self.id.overlap)[1] # we only need the c matrix, not the eigenvalues themselves,
         
+        delta = (f_b-f_a)/2
+        f_cs = (f_a+f_b)/2
+        # pay attention, c matrices are not unitary
+        c_inv = np.linalg.inv(c) # we need the inverse for later
+        p_trans = np.einsum("pq, qr, rs->ps", c_inv, p, c_inv.T, optimize=True)
+        delta_trans = np.einsum("pq, qr, rs->ps", c.T, delta, c, optimize=True)
+        
+        
+         # transform the fock matrices to NO basis
+        d = eigh(p_trans)[1]
+        d = d[:, ::-1] #invert all collumns
+    
+        d_inv = np.linalg.inv(d)
+        delta_no = np.einsum("pq, qr, rs->ps", d_inv, delta_trans, d_inv.T, optimize=True)
+        
+        alpha = self.id.alpha 
+        beta = self.id.beta
+        #alter first blocks
+        
+        delta_no[alpha:, :beta] = 0
+        delta_no[:beta, alpha:] = 0
+        delta_ao = np.einsum("pq, qr, rs->ps",c_inv.T.dot(d), delta_no, d.T.dot(c_inv), optimize=True)
+        
+        
+        return f_cs - delta_ao, f_cs + delta_ao
