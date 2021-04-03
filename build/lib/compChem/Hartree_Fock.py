@@ -146,17 +146,17 @@ class Molecule:
             occ = self.beta
             guess = self.guessMatrix_b
         C = self.getEigenStuff(spin)[1]
-        if np.all(guess == self.displayHamiltonian()) and self.alpha == self.beta:
+        if np.all(guess == self.displayHamiltonian()):
             if spin == "beta":
                 k = 1
-                HOMO_LUMO = C[:, occ-1:occ]
+                HOMO_LUMO = C[occ-1:occ+1]
                 HOMO = HOMO_LUMO[0]
                 LUMO = HOMO_LUMO[1]
                 HOMO_LUMO[0] += k*LUMO
                 HOMO_LUMO[1] += -k*HOMO
                 HOMO_LUMO *= 1/np.sqrt(2)
                 
-                C[:, occ-1:occ] = HOMO_LUMO
+                C[occ-1:occ+1] = HOMO_LUMO
             
         
         D = np.einsum("pq, qr->pr", C[:, :occ], C[:, :occ].T, optimize=True)
@@ -181,9 +181,9 @@ class Molecule:
         """
         calculates the energy with the current fock matrix
         """
-        sumMatrix_alpha = self.displayHamiltonian() + self.displayFockMatrix("alpha")
+        sumMatrix_alpha = self.displayHamiltonian() + self.guessMatrix_a
         E_alpha = 0.5*np.einsum("pq,pq->", sumMatrix_alpha, self.getDensityMatrix("alpha"), optimize=True)
-        sumMatrix_beta = self.displayHamiltonian() + self.displayFockMatrix("beta")
+        sumMatrix_beta = self.displayHamiltonian() + self.guessMatrix_b
         E_beta = 0.5*np.einsum("pq,pq->", sumMatrix_beta, self.getDensityMatrix("beta"), optimize=True)
         return E_alpha + E_beta 
 
