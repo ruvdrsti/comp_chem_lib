@@ -36,7 +36,8 @@ class Molecule:
         if change:
             self.alpha = change[0]
             self.beta = change[1]
-        self.setGuess()
+        
+        
         
         
         #setting up the inegrals
@@ -48,6 +49,8 @@ class Molecule:
 
         # defining convergence via user interactions
         self.converge = 1e-6
+
+        self.setGuess()
         
 
     
