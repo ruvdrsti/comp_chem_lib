@@ -158,9 +158,9 @@ class Molecule:
         if np.all(guess == self.displayHamiltonian()):
             if spin == "beta":
                 k = 1
-                HOMO_LUMO = C[occ-1:occ+1]
-                HOMO = HOMO_LUMO[0]
-                LUMO = HOMO_LUMO[1]
+                HOMO_LUMO = C[occ-1:occ+1].copy()
+                HOMO = HOMO_LUMO[0].copy()
+                LUMO = HOMO_LUMO[1].copy()
                 HOMO_LUMO[0] += k*LUMO
                 HOMO_LUMO[1] += -k*HOMO
                 HOMO_LUMO *= 1/np.sqrt(2)
