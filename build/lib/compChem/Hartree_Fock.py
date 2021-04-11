@@ -205,7 +205,7 @@ class Molecule:
 
 
 
-    def iterator(self, constraint=False, criterion='density', iteration=5000):
+    def iterator(self, constraint=False, criterion='density', iteration=5000, mute=False):
         """
         Function that performs the Hartree-Fock iterative calculations for the given molecule.
         
@@ -257,7 +257,8 @@ class Molecule:
 
 
             # maintenance block: keeps everything going
-            print(f"iteration: {itercount}, E_tot: {E_total: .8f}, E_elek: {E_new: .8f}, deltaE: {E_new - E_old: .8f}, rmsD: {rms_D_a: .8f}")
+            if not mute:
+                print(f"iteration: {itercount}, E_tot: {E_total: .8f}, E_elek: {E_new: .8f}, deltaE: {E_new - E_old: .8f}, rmsD: {rms_D_a: .8f}")
             E_old = E_new
             d_old_alpha = d_new_alpha
             d_old_beta = d_new_beta
