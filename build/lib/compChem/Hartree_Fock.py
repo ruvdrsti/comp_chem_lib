@@ -22,7 +22,7 @@ class Molecule:
         if mode == "NoneGiven":
             raise ValueError("specify a mode")
         mode = mode.lower()
-        assert mode in ("uhf", "cuhf", "uhf"), f"{mode}: not a valid mode"
+        assert mode in ("rhf", "cuhf", "uhf"), f"{mode}: not a valid mode"
         if """pubchem""" in geom_file:
             self.id = psi4.geometry(geom_file)
         else:
