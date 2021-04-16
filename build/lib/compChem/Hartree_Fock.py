@@ -160,7 +160,7 @@ class Molecule:
             occ = self.beta
             guess = self.guessMatrix_b
         C = self.getEigenStuff(spin)[1]
-        if np.all(guess == self.displayHamiltonian()):
+        if np.all(guess == self.displayHamiltonian()) and self.mode != "rhf":
             if spin == "beta":
                 k = 1
                 HOMO_LUMO = C[occ-1:occ+1].copy()
