@@ -37,7 +37,7 @@ class Molecule:
         # only works for closed shell systems
         self.guessMatrix_a = "empty"
         self.guessMatrix_b = "empty"
-        self.mode = mode
+        self.mode = mode.lower()
         if change:
             self.alpha = change[0]
             self.beta = change[1]
