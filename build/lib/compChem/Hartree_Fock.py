@@ -6,18 +6,23 @@ psi4.set_memory(int(5e8))
 numpy_memory = 2
 psi4.set_options({'basis': 'cc-pvdz', 'reference': 'uhf', 'scf_type': 'df'})
 class Molecule:
-    def __init__(self, geom_file, change=False):
+    def __init__(self, geom_file, change=False, mode="NoneGiven"):
         """
         sets up the molecule object
         
         input:
         geom_file: a link to a pubchem file  
-        change: tuple that contains a custom electron arrangement, of the shape (n_a, n_b)  
+        change: tuple that contains a custom electron arrangement, of the shape (n_a, n_b)
+        mode: the mode you want to work with, either rhf, uhf or cuhf  
             
         note:
         This class is designed to work in an iterative HF calculation. The guess matrix needs to be
         updated asap. This will always correspond to the current fock-matrix.
         """
+        if mode == "NoneGiven":
+            raise ValueError("specify a mode")
+        mode = mode.lower()
+        assert mode in ("uhf", "cuhf", "uhf"), f"{mode}: not a valid mode"
         if """pubchem""" in geom_file:
             self.id = psi4.geometry(geom_file)
         else:
@@ -32,7 +37,7 @@ class Molecule:
         # only works for closed shell systems
         self.guessMatrix_a = "empty"
         self.guessMatrix_b = "empty"
-
+        self.mode = mode
         if change:
             self.alpha = change[0]
             self.beta = change[1]
@@ -205,12 +210,11 @@ class Molecule:
 
 
 
-    def iterator(self, constraint=False, criterion='density', iteration=5000, mute=False):
+    def iterator(self, criterion='density', iteration=5000, mute=False):
         """
         Function that performs the Hartree-Fock iterative calculations for the given molecule.
         
         input:
-        constraint: True for CUHF, false for normal UHF
         criterion: "energy" or "density", sets the criterion that we want to evaluate. Default "density"
         iteration: maximum amount of iterations allowed. Default 500
         
@@ -235,13 +239,15 @@ class Molecule:
             E_total = self.getTotalEnergy()
 
             # generating block: generates new matrices UHF: account for alpha and beta
-            if constraint:
+            if self.mode == "cuhf":
                 F_a, F_b = self.basischanger()
             else:
                 F_a = self.displayFockMatrix("alpha")
                 F_b = self.displayFockMatrix("beta")
             self.setGuess(F_a, "alpha")
             self.setGuess(F_b, "beta") 
+            if self.mode == "rhf": # for RHF the fock matrices are identical for alpha and beta
+                self.setGuess(F_a, "beta") 
             d_new_alpha = self.getDensityMatrix("alpha")
             d_new_beta = self.getDensityMatrix("beta")
 
