@@ -270,6 +270,7 @@ class Molecule:
             d_old_beta = d_new_beta
             itercount += 1
         
+        self.E_0 = E_total
         return E_total
 
     
