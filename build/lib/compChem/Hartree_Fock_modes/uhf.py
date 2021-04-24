@@ -4,7 +4,7 @@ import scipy.linalg as sp
 psi4.set_output_file("output.dat", True)  # setting output file
 psi4.set_memory(int(5e8))
 numpy_memory = 2
-from hf_backbone import Molecule
+from compChem.Hartree_Fock_modes.hf_backbone import Molecule
 class UHFMolecule(Molecule):
     """
     Will extend the backbone to work for RHF
@@ -45,7 +45,7 @@ class UHFMolecule(Molecule):
             guess = self.guessMatrix_b
         C = self.getEigenStuff(spin)[1]
         if np.all(guess == self.displayHamiltonian()): # only do during the first iteration
-            if spin == "beta": # only change one matrix
+            if spin == "beta" and self.beta: # only change one matrix, and only if there is an electron in it
                 k = 1
                 HOMO_LUMO = C[:, occ-1:occ+1].copy() # copy the collumns
                 HOMO = HOMO_LUMO[:, 0].copy()
@@ -153,3 +153,34 @@ class UHFMolecule(Molecule):
         
         self.E_0 = E_total
         return E_total, itercount
+
+
+    def getSpinContamination(self, mixedGuess=True):
+        """Will display the spin contamination
+
+        input:
+        mixedGuess: False if you do not want to use a mixed guess
+        """
+        # transform p to MO basis, where mo basis = the eigenfunctions of the f_a operator
+        a = self.getDensityMatrix("alpha", mixedGuess=True)
+        b = self.getDensityMatrix("beta", mixedGuess=True)
+        f_a, f_b = self.displayFockMatrix("alpha", mixedGuess=True), self.displayFockMatrix("beta",mixedGuess=True)
+        p = (a+b)/2
+        m = (a-b)/2
+        c = sp.eigh(f_a, self.overlap)[1] # we only need the c matrix, not the eigenvalues themselves,
+
+
+        # pay attention, c matrices are not unitary
+        c_inv = np.linalg.inv(c) # we need the inverse for later
+        p_trans = np.einsum("pq, qr, rs->ps", c_inv, p, c_inv.T, optimize=True)
+        m_trans = np.einsum("pq, qr, rs->ps", c_inv, m, c_inv.T, optimize=True)
+
+
+        # transform the fock matrices to NO basis
+        d = sp.eigh(p_trans)[1]
+        d = d[:, ::-1] #invert all collumns
+
+        d_inv = np.linalg.inv(d)
+        m_no = np.einsum("pq, qr, rs->ps", d_inv, m_trans, d_inv.T, optimize=True)
+
+        return self.beta - (self.alpha + self.beta)/2 + 2*np.trace(m_no.dot(m_no))
