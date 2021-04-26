@@ -29,12 +29,13 @@ class UHFMolecule(Molecule):
             return sp.eigh(F, b=self.displayOverlap())
 
 
-    def getDensityMatrix(self, spin):
+    def getDensityMatrix(self, spin, mixedGuess=True):
         """
         generates the densitiy matrices on the MO level, D_alpha, D_beta
         
         input:
         spin: a string, either "alpha" or "beta"
+        mixedGuess: False if you do not want to use a mixed guess
         """
         assert spin == "alpha" or spin == "beta", f"{spin}: no valid spin"
         if spin == "alpha":
@@ -44,10 +45,10 @@ class UHFMolecule(Molecule):
             occ = self.beta
             guess = self.guessMatrix_b
         C = self.getEigenStuff(spin)[1]
-        if np.all(guess == self.displayHamiltonian()): # only do during the first iteration
-            if spin == "beta" and self.beta: # only change one matrix, and only if there is an electron in it
+        if np.all(guess == self.displayHamiltonian()) and self.beta and mixedGuess:
+            if spin == "beta":
                 k = 1
-                HOMO_LUMO = C[:, occ-1:occ+1].copy() # copy the collumns
+                HOMO_LUMO = C[:, occ-1:occ+1].copy()
                 HOMO = HOMO_LUMO[:, 0].copy()
                 LUMO = HOMO_LUMO[:, 1].copy()
                 HOMO_LUMO[:, 0] += k*LUMO
@@ -61,40 +62,40 @@ class UHFMolecule(Molecule):
         return D
 
 
-    def displayFockMatrix(self, spin):
+    def displayFockMatrix(self, spin, mixedGuess=True):
         """
         Will display the Fock matrix
         
         input:
         spin: a string, either "alpha" or "beta"
         """
-        coulomb_a = np.einsum("nopq,pq->no", self.displayElectronRepulsion(), self.getDensityMatrix("alpha"), optimize=True)
-        coulomb_b = np.einsum("nopq,pq->no", self.displayElectronRepulsion(), self.getDensityMatrix("beta"), optimize=True)
-        exchange = np.einsum("npoq,pq->no", self.displayElectronRepulsion(), self.getDensityMatrix(spin), optimize=True)
+        coulomb_a = np.einsum("nopq,pq->no", self.displayElectronRepulsion(), self.getDensityMatrix("alpha", mixedGuess=mixedGuess), optimize=True)
+        coulomb_b = np.einsum("nopq,pq->no", self.displayElectronRepulsion(), self.getDensityMatrix("beta", mixedGuess=mixedGuess), optimize=True)
+        exchange = np.einsum("npoq,pq->no", self.displayElectronRepulsion(), self.getDensityMatrix(spin, mixedGuess=mixedGuess), optimize=True)
         F = self.displayHamiltonian() + coulomb_a + coulomb_b - exchange
         return F
 
 
-    def getElectronicEnergy(self):
+    def getElectronicEnergy(self, mixedGuess=True):
         """
         calculates the energy with the current fock matrix
         """
         sumMatrix_alpha = self.displayHamiltonian() + self.guessMatrix_a
-        E_alpha = 0.5*np.einsum("pq,pq->", sumMatrix_alpha, self.getDensityMatrix("alpha"), optimize=True)
+        E_alpha = 0.5*np.einsum("pq,pq->", sumMatrix_alpha, self.getDensityMatrix("alpha", mixedGuess=mixedGuess), optimize=True)
         sumMatrix_beta = self.displayHamiltonian() + self.guessMatrix_b
-        E_beta = 0.5*np.einsum("pq,pq->", sumMatrix_beta, self.getDensityMatrix("beta"), optimize=True)
+        E_beta = 0.5*np.einsum("pq,pq->", sumMatrix_beta, self.getDensityMatrix("beta", mixedGuess=mixedGuess), optimize=True)
         return E_alpha + E_beta 
 
 
-    def getTotalEnergy(self):
+    def getTotalEnergy(self, mixedGuess=True):
         """
         Calculates the total energy
         """
-        return self.getElectronicEnergy() + self.displayNucRep()
+        return self.getElectronicEnergy(mixedGuess=mixedGuess) + self.displayNucRep()
 
 
 
-    def iterator(self, criterion='density', iteration=5000, mute=False):
+    def iterator(self, criterion='density', iteration=5000, mute=False, mixedGuess=True):
         """
         Function that performs the Hartree-Fock iterative calculations for the given molecule.
         
@@ -111,8 +112,8 @@ class UHFMolecule(Molecule):
         # setting up entry parameters for the while loop
         E_new = 0  
         E_old = 0
-        d_old_alpha = self.getDensityMatrix("alpha")
-        d_old_beta = self.getDensityMatrix("beta")
+        d_old_alpha = self.getDensityMatrix("alpha", mixedGuess=mixedGuess)
+        d_old_beta = self.getDensityMatrix("beta", mixedGuess=mixedGuess)
         convergence = False
 
         # step 2: start iterating
@@ -121,16 +122,16 @@ class UHFMolecule(Molecule):
 
             # calculating block: calculates energies
             E_new = self.getElectronicEnergy()
-            E_total = self.getTotalEnergy()
+            E_total = self.getTotalEnergy(mixedGuess=mixedGuess)
 
             # generating block: generates new matrices UHF: account for alpha and beta
-            F_a = self.displayFockMatrix("alpha")
-            F_b = self.displayFockMatrix("beta")
+            F_a = self.displayFockMatrix("alpha", mixedGuess=mixedGuess)
+            F_b = self.displayFockMatrix("beta", mixedGuess=mixedGuess)
             self.setGuess(F_a, "alpha")
             self.setGuess(F_b, "beta") 
 
-            d_new_alpha = self.getDensityMatrix("alpha")
-            d_new_beta = self.getDensityMatrix("beta")
+            d_new_alpha = self.getDensityMatrix("alpha", mixedGuess=mixedGuess)
+            d_new_beta = self.getDensityMatrix("beta",mixedGuess=mixedGuess)
 
             # comparing block: will answer the "Are we there yet?" question
             rms_D_a = np.sqrt(np.einsum("pq->", (d_old_alpha - d_new_alpha)**2, optimize=True))
