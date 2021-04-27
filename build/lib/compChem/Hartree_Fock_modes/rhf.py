@@ -4,7 +4,7 @@ import scipy.linalg as sp
 psi4.set_output_file("output.dat", True)  # setting output file
 psi4.set_memory(int(5e8))
 numpy_memory = 2
-from hf_backbone import Molecule
+from compChem.Hartree_Fock_modes.hf_backbone import Molecule
 class RHFMolecule(Molecule):
     """
     Will extend the backbone to work for RHF
