@@ -27,7 +27,14 @@ class Molecule:
         self.integrals = psi4.core.MintsHelper(self.basis)
         self.alpha = self.wfn.nalpha()
         self.beta = self.wfn.nbeta()
-        # only works for closed shell systems
+
+        #setting up the inegrals
+        self.nuc_rep = self.id.nuclear_repulsion_energy()
+        self.overlap = self.integrals.ao_overlap().np
+        self.kin = self.integrals.ao_kinetic().np
+        self.pot = self.integrals.ao_potential().np
+        self.elrep = self.integrals.ao_eri().np
+
         self.guessMatrix_a = self.setGuess(self.displayHamiltonian(), "alpha")
         self.guessMatrix_b = self.setGuess(self.displayHamiltonian(), "beta")
         if change:
@@ -39,12 +46,7 @@ class Molecule:
         
         
         
-        #setting up the inegrals
-        self.nuc_rep = self.id.nuclear_repulsion_energy()
-        self.overlap = self.integrals.ao_overlap().np
-        self.kin = self.integrals.ao_kinetic().np
-        self.pot = self.integrals.ao_potential().np
-        self.elrep = self.integrals.ao_eri().np
+
 
         # defining convergence via user interactions
         self.converge = 1e-6
