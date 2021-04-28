@@ -400,7 +400,7 @@ class UHFMolecule(Molecule):
             # maintenance block: keeps everything going
             if not mute:
                 print(f"iteration: {itercount}, E_tot: {E_total: .8f}, E_elek: {E_new: .8f}, deltaE: {E_new - E_old: .8f}, rmsD: {rms_D_a: .8f}, {rms_D_b : .8f}")
-            E_old = E_new
+            E_old = E_total
             d_old_alpha = d_new_alpha
             d_old_beta = d_new_beta
             itercount += 1
