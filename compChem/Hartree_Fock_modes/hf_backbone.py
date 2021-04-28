@@ -36,8 +36,8 @@ class Molecule:
         self.elrep = self.integrals.ao_eri().np
         
         
-        self.guessMatrix_a = self.setGuess(self.displayHamiltonian(), "alpha")
-        self.guessMatrix_b = self.setGuess(self.displayHamiltonian(), "beta")
+        self.guessMatrix_a = self.kin + self.pot
+        self.guessMatrix_b = self.kin + self.pot
         if change:
             self.alpha = change[0]
             self.beta = change[1]

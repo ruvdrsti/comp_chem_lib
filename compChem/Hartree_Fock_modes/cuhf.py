@@ -107,7 +107,6 @@ class CUHFMolecule(Molecule):
         note:
         the molecule needs to have its guessmatrices set before entering
         """
-        assert self.guessMatrix_a != "empty" and self.guessMatrix_b != "empty", "make a guess first"
         assert criterion == "energy" or criterion == "density", f" {criterion}: not a valid criterion"
         # setting up entry parameters for the while loop
         E_old = self.E_0

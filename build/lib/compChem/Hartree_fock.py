@@ -35,8 +35,8 @@ class Molecule:
         self.pot = self.integrals.ao_potential().np
         self.elrep = self.integrals.ao_eri().np
 
-        self.guessMatrix_a = self.setGuess(self.displayHamiltonian(), "alpha")
-        self.guessMatrix_b = self.setGuess(self.displayHamiltonian(), "beta")
+        self.guessMatrix_a = self.kin + self.pot
+        self.guessMatrix_b = self.kin + self.pot
         if change:
             self.alpha = change[0]
             self.beta = change[1]
@@ -354,7 +354,6 @@ class UHFMolecule(Molecule):
         note:
         the molecule needs to have its guessmatrices set before entering
         """
-        assert self.guessMatrix_a != "empty" and self.guessMatrix_b != "empty", "make a guess first"
         assert criterion == "energy" or criterion == "density", f" {criterion}: not a valid criterion"
         # setting up entry parameters for the while loop
         E_old = self.E_0
@@ -535,7 +534,6 @@ class CUHFMolecule(Molecule):
         note:
         the molecule needs to have its guessmatrices set before entering
         """
-        assert self.guessMatrix_a != "empty" and self.guessMatrix_b != "empty", "make a guess first"
         assert criterion == "energy" or criterion == "density", f" {criterion}: not a valid criterion"
         # setting up entry parameters for the while loop
         E_old = self.E_0
