@@ -95,7 +95,7 @@ class CISMolecule():
         contrib = self.coefs**2
         energies = self.excitation_energies
         counterdict = {} # added to check how many times a certain excitation occurs
-        datafile.writelines(f"scf energy for {self.mode}: {self.E_0}\n")
+        datafile.writelines(f"scf energy for {self.id.mode}: {self.E_0}\n")
         for state, energy in enumerate(energies):
             datafile.writelines(f" {state + 1} : {energy}\n")
             for excitation, contribution in enumerate(contrib[:, state]):
