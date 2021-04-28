@@ -111,7 +111,7 @@ class UHFMolecule(Molecule):
         assert self.guessMatrix_a != "empty" and self.guessMatrix_b != "empty", "make a guess first"
         assert criterion == "energy" or criterion == "density", f" {criterion}: not a valid criterion"
         # setting up entry parameters for the while loop
-        E_old = E_total
+        E_old = self.E_0
         d_old_alpha = self.getDensityMatrix("alpha", mixedGuess=mixedGuess)
         d_old_beta = self.getDensityMatrix("beta", mixedGuess=mixedGuess)
         convergence = False
