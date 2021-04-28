@@ -14,6 +14,7 @@ class CUHFMolecule(Molecule):
     """
     def __init__(self, geometry):
         super().__init__(geometry)
+        self.mode = "cuhf"
 
     def getEigenStuff(self, spin):
         """
@@ -109,8 +110,7 @@ class CUHFMolecule(Molecule):
         assert self.guessMatrix_a != "empty" and self.guessMatrix_b != "empty", "make a guess first"
         assert criterion == "energy" or criterion == "density", f" {criterion}: not a valid criterion"
         # setting up entry parameters for the while loop
-        E_new = 0  
-        E_old = 0
+        E_old = self.E_0
         d_old_alpha = self.getDensityMatrix("alpha", mixedGuess=mixedGuess)
         d_old_beta = self.getDensityMatrix("beta", mixedGuess=mixedGuess)
         convergence = False
@@ -137,14 +137,14 @@ class CUHFMolecule(Molecule):
                 if rms_D_a < self.converge and rms_D_b < self.converge:
                     convergence = True
             else:
-                if abs(E_old - E_new) < self.converge:
+                if abs(E_old - E_total) < self.converge:
                     convergence = True
 
 
             # maintenance block: keeps everything going
             if not mute:
                 print(f"iteration: {itercount}, E_tot: {E_total: .8f}, E_elek: {E_new: .8f}, deltaE: {E_new - E_old: .8f}, rmsD: {rms_D_a: .8f}")
-            E_old = E_new
+            E_old = E_total
             d_old_alpha = d_new_alpha
             d_old_beta = d_new_beta
             itercount += 1

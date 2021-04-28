@@ -76,24 +76,16 @@ class CISMolecule():
                 H_cis[row, collumn] = (epsilon[a] - epsilon[i])*(i == j)*(a == b) + tei_mo[a, j, i, b]
         
 
-        # get the E_0 value in the hamiltonian
-        extra_row = np.zeros((H_cis.shape[1],))
-        H_cis = np.vstack((extra_row, H_cis))
-        extra_collumn = np.zeros((H_cis.shape[0], 1))
-        H_cis = np.hstack((extra_collumn, H_cis))
-        H_cis[0,0] = self.E_0
         return H_cis
 
 
-    def CalculateExcitations(self, alternate=False):
+    def CalculateExcitations(self):
         """setting up some properties needed for later"""
         ham = self.displayCISHamiltonian()
-        if alternate:
-            ham = self.displayCISHamiltonian()[1:, 1:]
         self.excitation_energies, self.coefs = eigh(ham)
 
 
-    def GetExitations(self, filepath="NoNameGiven", alternate=False):
+    def GetExitations(self, filepath="NoNameGiven"):
         """Get the excitation energies and the contributions"""
         if filepath == "NoNameGiven":
             raise ValueError("no path specified")
@@ -101,14 +93,10 @@ class CISMolecule():
         Path(f"{filepath}").touch()
         datafile = open(f"{filepath}", "w")
         self.CalculateExcitations(alternate=alternate)
-        if alternate:
-            contrib = self.coefs**2
-            energies = self.excitation_energies
-        else:
-            contrib = self.coefs[1:, 1:]**2
-            energies = self.excitation_energies[1:]
+        contrib = self.coefs**2
+        energies = self.excitation_energies
         counterdict = {} # added to check how many times a certain excitation occurs
-        datafile.writelines(f"scf energy for {type(self.id)}: {self.E_0}\n")
+        datafile.writelines(f"scf energy for {self.mode}: {self.E_0}\n")
         for state, energy in enumerate(energies):
             datafile.writelines(f" {state + 1} : {energy}\n")
             for excitation, contribution in enumerate(contrib[:, state]):

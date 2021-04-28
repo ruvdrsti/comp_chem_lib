@@ -14,6 +14,7 @@ class UHFMolecule(Molecule):
     """
     def __init__(self, geometry):
         super().__init__(geometry)
+        self.mode = "uhf"
 
     
     def getEigenStuff(self, spin):
@@ -110,8 +111,7 @@ class UHFMolecule(Molecule):
         assert self.guessMatrix_a != "empty" and self.guessMatrix_b != "empty", "make a guess first"
         assert criterion == "energy" or criterion == "density", f" {criterion}: not a valid criterion"
         # setting up entry parameters for the while loop
-        E_new = 0  
-        E_old = 0
+        E_old = E_total
         d_old_alpha = self.getDensityMatrix("alpha", mixedGuess=mixedGuess)
         d_old_beta = self.getDensityMatrix("beta", mixedGuess=mixedGuess)
         convergence = False
@@ -140,7 +140,7 @@ class UHFMolecule(Molecule):
                 if rms_D_a < self.converge and rms_D_b < self.converge:
                     convergence = True
             else:
-                if abs(E_old - E_new) < self.converge:
+                if abs(E_old - E_total) < self.converge:
                     convergence = True
 
 

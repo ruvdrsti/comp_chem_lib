@@ -28,11 +28,13 @@ class Molecule:
         self.alpha = self.wfn.nalpha()
         self.beta = self.wfn.nbeta()
         # only works for closed shell systems
-        self.guessMatrix_a = "empty"
-        self.guessMatrix_b = "empty"
+        self.guessMatrix_a = self.setGuess(self.displayHamiltonian(), "alpha")
+        self.guessMatrix_b = self.setGuess(self.displayHamiltonian(), "beta")
         if change:
             self.alpha = change[0]
             self.beta = change[1]
+        
+        self.E_0 = 0
         
         
         
@@ -47,7 +49,6 @@ class Molecule:
         # defining convergence via user interactions
         self.converge = 1e-6
 
-        self.setGuess()
         
 
     
@@ -62,14 +63,11 @@ class Molecule:
         note:
         this method is kept as is, since both uhf and cuhf will require separate guessmatrices. Rhf will not, but will only use one of the guessmatrix fields.
         """
-        if self.guessMatrix_a == "empty" and self.guessMatrix_b == "empty":
-            self.guessMatrix_a = self.displayHamiltonian()
-            self.guessMatrix_b = self.displayHamiltonian()
+        assert spin == "alpha" or spin == "beta", f"{spin}: no valid spin"
+        if spin == "alpha":
+            self.guessMatrix_a = new_guess
         else:
-            if spin == "alpha":
-                self.guessMatrix_a = new_guess
-            else:
-                self.guessMatrix_b = new_guess
+            self.guessMatrix_b = new_guess
 
 
     def displayNucRep(self):
