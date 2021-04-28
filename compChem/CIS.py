@@ -3,7 +3,6 @@ import numpy as np
 from scipy.linalg import eigh
 numpy_memory = 4
 psi4.set_memory(int(5e8))
-from compChem.Hartree_Fock_modes import rhf
 class CISMolecule():
     def __init__(self, molecule):
         """
@@ -42,7 +41,7 @@ class CISMolecule():
     def displayCISHamiltonian(self):
         """displays the CIS hamiltonian in MO basis"""
         # getting the orbital energies
-        if str(type(self.id)) == "<class 'compChem.Hartree_Fock_modes.rhf.RHFMolecule'>": 
+        if self.mode == "rhf": 
             epsilon_a, C_a = self.id.getEigenStuff()
             epsilon_b, C_b = self.id.getEigenStuff()
         else:
