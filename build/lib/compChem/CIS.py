@@ -91,7 +91,7 @@ class CISMolecule():
         from pathlib import Path
         Path(f"{filepath}").touch()
         datafile = open(f"{filepath}", "w")
-        self.CalculateExcitations(alternate=alternate)
+        self.CalculateExcitations()
         contrib = self.coefs**2
         energies = self.excitation_energies
         counterdict = {} # added to check how many times a certain excitation occurs
