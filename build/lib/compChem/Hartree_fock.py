@@ -169,14 +169,15 @@ class RHFMolecule(Molecule):
 
 
 
-    def iterator(self, criterion='density', iteration=5000, mute=False):
+    def iterator(self, criterion='density', iteration=5000, mute=False, Force=False):
         """
         Function that performs the Hartree-Fock iterative calculations for the given molecule.
         
         input:
         criterion: "energy" or "density", sets the criterion that we want to evaluate. Default "density"
-        iteration: maximum amount of iterations allowed. Default 500
-        
+        iteration: maximum amount of iterations allowed. Default 5000
+        Force: force all elements below value 1e-10 to become a true zero
+
         note:
         the molecule needs to have its guessmatrices set before entering
         """
@@ -196,6 +197,8 @@ class RHFMolecule(Molecule):
 
             # generating block: generates new matrices UHF: account for alpha and beta
             F_a = self.displayFockMatrix()
+            if Force:
+                F_a[abs(F_a) < 1e-10] = 0
             self.setGuess(F_a, "alpha") # see doctring setGuess method
             d_new = self.getDensityMatrix()
 
@@ -342,7 +345,7 @@ class UHFMolecule(Molecule):
 
 
 
-    def iterator(self, criterion='density', iteration=5000, mute=False, mixedGuess=True):
+    def iterator(self, criterion='density', iteration=5000, mute=False, mixedGuess=True, Force=False):
         """
         Function that performs the Hartree-Fock iterative calculations for the given molecule.
         
@@ -350,6 +353,7 @@ class UHFMolecule(Molecule):
         criterion: "energy" or "density", sets the criterion that we want to evaluate. Default "density"
         iteration: maximum amount of iterations allowed. Default 5000
         mute: False if you want to see all the iterations
+        Force: force all elements below value 1e-10 to become a true zero
         
         note:
         the molecule needs to have its guessmatrices set before entering
@@ -372,6 +376,10 @@ class UHFMolecule(Molecule):
             # generating block: generates new matrices UHF: account for alpha and beta
             F_a = self.displayFockMatrix("alpha", mixedGuess=mixedGuess)
             F_b = self.displayFockMatrix("beta", mixedGuess=mixedGuess)
+            if Force:
+                F_a[abs(F_a) < 1e-10] = 0
+                F_b[abs(F_b) < 1e-10] = 0
+
             self.setGuess(F_a, "alpha")
             self.setGuess(F_b, "beta") 
 
@@ -522,7 +530,7 @@ class CUHFMolecule(Molecule):
 
 
 
-    def iterator(self, criterion='density', iteration=5000, mute=False, mixedGuess=True):
+    def iterator(self, criterion='density', iteration=5000, mute=False, mixedGuess=True, Force=False):
         """
         Function that performs the Hartree-Fock iterative calculations for the given molecule.
         
@@ -530,6 +538,7 @@ class CUHFMolecule(Molecule):
         criterion: "energy" or "density", sets the criterion that we want to evaluate. Default "density"
         iteration: maximum amount of iterations allowed. Default 5000
         mixedGuess: False if you do not want to use a mixed guess
+        Force: force all elements below value 1e-10 to become a true zero
 
         note:
         the molecule needs to have its guessmatrices set before entering
@@ -551,8 +560,13 @@ class CUHFMolecule(Molecule):
 
             # generating block: generates new matrices UHF: account for alpha and beta
             F_a, F_b = self.basischanger(mixedGuess=mixedGuess)
+
+            if Force:
+                F_a[abs(F_a) < 1e-10] = 0
+                F_b[abs(F_b) < 1e-10] = 0
             self.setGuess(F_a, "alpha")
             self.setGuess(F_b, "beta") 
+
             d_new_alpha = self.getDensityMatrix("alpha", mixedGuess=mixedGuess)
             d_new_beta = self.getDensityMatrix("beta", mixedGuess=mixedGuess)
 
