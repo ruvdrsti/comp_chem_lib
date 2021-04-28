@@ -41,7 +41,7 @@ class CISMolecule():
     def displayCISHamiltonian(self):
         """displays the CIS hamiltonian in MO basis"""
         # getting the orbital energies
-        if self.mode == "rhf": 
+        if self.id.mode == "rhf": 
             epsilon_a, C_a = self.id.getEigenStuff()
             epsilon_b, C_b = self.id.getEigenStuff()
         else:
